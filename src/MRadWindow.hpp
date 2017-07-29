@@ -5,6 +5,7 @@
 #include "MRubberBand.hpp"
 #include "DialogRes.hpp"
 #include <set>
+#include <map>
 
 class MRadCtrl : public MWindowBase
 {
@@ -200,6 +201,12 @@ public:
 
     void OnMove(HWND hwnd, int x, int y)
     {
+        if (!m_bTopCtrl)
+        {
+            DefaultProcDx(hwnd, WM_MOVE, 0, MAKELPARAM(x, y));
+            return;
+        }
+
         if (!m_bMoving)
         {
             POINT pt;
@@ -221,6 +228,12 @@ public:
 
     void OnSize(HWND hwnd, UINT state, int cx, int cy)
     {
+        DefaultProcDx(hwnd, WM_SIZE, 0, MAKELPARAM(cx, cy));
+        if (!m_bTopCtrl)
+        {
+            return;
+        }
+
         if (!m_bSizing)
             ResizeAll(hwnd, cx, cy);
     }
@@ -390,6 +403,9 @@ public:
 
     void OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
     {
+        if (::GetKeyState(VK_SHIFT) < 0 || ::GetKeyState(VK_CONTROL) < 0)
+            return;
+
         MRadCtrl::DeselectAll();
     }
 
