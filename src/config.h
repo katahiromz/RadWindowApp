@@ -18,7 +18,7 @@
 // program information
 
 // TODO: Set the program information properly
-#define PROGRAM_NAME        "RadWindow"
+#define PROGRAM_NAME        "RadWindowApp"
 #define PROGRAM_AUTHORS     "Katayama Hirofumi MZ"
 #define PROGRAM_YEARS       "2015-2017"
 

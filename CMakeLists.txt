@@ -14,7 +14,7 @@ project(RadWindowApp CXX)
 set(PROGRAM_MAJOR 0)
 set(PROGRAM_MINOR 1)
 set(PROGRAM_BUILD 0)
-set(PROGRAM_NAME "RadWindow")
+set(PROGRAM_NAME "RadWindowApp")
 set(PROGRAM_AUTHORS "Katayama Hirofumi MZ")
 set(PROGRAM_YEARS "2015-2017")
 set(VERSION_STRING "${PROGRAM_MAJOR}.${PROGRAM_MINOR}.${PROGRAM_BUILD}")
@@ -53,15 +53,15 @@ if (CMAKE_HOST_WIN32)
     ENABLE_LANGUAGE(RC)
 
     # Win32
-    add_executable(RadWindow WIN32 ${SOURCES} src/RadWindowApp_res.rc)
+    add_executable(RadWindowApp WIN32 ${SOURCES} src/RadWindowApp_res.rc)
 else()
     message(FATAL_ERROR "To build this project, use Win32 C++ compiler")
 endif()
 
 # do statically link
-set_target_properties(RadWindow PROPERTIES LINK_DEPENDS_NO_SHARED 1)
-set_target_properties(RadWindow PROPERTIES LINK_SEARCH_START_STATIC 1)
-set_target_properties(RadWindow PROPERTIES LINK_SEARCH_END_STATIC 1)
+set_target_properties(RadWindowApp PROPERTIES LINK_DEPENDS_NO_SHARED 1)
+set_target_properties(RadWindowApp PROPERTIES LINK_SEARCH_START_STATIC 1)
+set_target_properties(RadWindowApp PROPERTIES LINK_SEARCH_END_STATIC 1)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 SET(BUILD_SHARED_LIBRARIES OFF)
@@ -93,6 +93,6 @@ endif()
 configure_file(src/config.h.in src/config.h)
 
 # install the program
-install(TARGETS RadWindow DESTINATION bin)
+install(TARGETS RadWindowApp DESTINATION bin)
 
 ##############################################################################
