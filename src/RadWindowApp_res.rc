@@ -76,8 +76,8 @@ END
 BEGIN
     POPUP "Popup"
     BEGIN
-        MENUITEM "Test 2",                  IDM_TEST2
-        MENUITEM "Test 3",                  IDM_TEST3
+        MENUITEM "Do Test",                 IDM_TEST2
+        MENUITEM "Delete",                  IDM_TEST3
     END
 END
 

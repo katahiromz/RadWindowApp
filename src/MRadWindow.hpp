@@ -59,7 +59,23 @@ public:
         return NULL;
     }
 
-    static void DeselectAll(HWND hwnd = NULL)
+    static void DeselectSelection()
+    {
+        set_type::iterator it, end = GetTargets().end();
+        for (it = GetTargets().begin(); it != end; ++it)
+        {
+            MRadCtrl *pCtrl = GetRadCtrl(*it);
+            if (pCtrl)
+            {
+                ::DestroyWindow(pCtrl->m_hwndRubberBand);
+                pCtrl->m_hwndRubberBand = NULL;
+            }
+        }
+        GetTargets().clear();
+        GetLastSel() = NULL;
+    }
+
+    static void DeleteSelection(HWND hwnd = NULL)
     {
         set_type::iterator it, end = GetTargets().end();
         for (it = GetTargets().begin(); it != end; ++it)
@@ -72,6 +88,7 @@ public:
             {
                 ::DestroyWindow(pCtrl->m_hwndRubberBand);
                 pCtrl->m_hwndRubberBand = NULL;
+                ::DestroyWindow(*pCtrl);
             }
         }
         GetTargets().clear();
@@ -107,7 +124,7 @@ public:
         GetLastSel() = hwnd;
     }
 
-    static void MoveAll(HWND hwnd, INT dx, INT dy)
+    static void MoveSelection(HWND hwnd, INT dx, INT dy)
     {
         set_type::iterator it, end = GetTargets().end();
         for (it = GetTargets().begin(); it != end; ++it)
@@ -130,7 +147,7 @@ public:
         }
     }
 
-    static void ResizeAll(HWND hwnd, INT cx, INT cy)
+    static void ResizeSelection(HWND hwnd, INT cx, INT cy)
     {
         set_type::iterator it, end = GetTargets().end();
         for (it = GetTargets().begin(); it != end; ++it)
@@ -173,10 +190,25 @@ public:
             HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnLButtonDown);
             HANDLE_MSG(hwnd, WM_LBUTTONUP, OnLButtonUp);
             HANDLE_MSG(hwnd, WM_MOUSEMOVE, OnMouseMove);
+            HANDLE_MSG(hwnd, WM_NCRBUTTONDOWN, OnNCRButtonDown);
+            HANDLE_MSG(hwnd, WM_NCRBUTTONDBLCLK, OnNCRButtonDown);
+            HANDLE_MSG(hwnd, WM_NCRBUTTONUP, OnNCRButtonUp);
             case WM_MOVING: case WM_SIZING:
                 return 0;
         }
         return DefaultProcDx(hwnd, uMsg, wParam, lParam);
+    }
+
+    void OnNCRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest)
+    {
+        if (fDoubleClick)
+            return;
+
+        SendMessage(GetParent(hwnd), WM_NCRBUTTONDOWN, (WPARAM)hwnd, MAKELPARAM(x, y));
+    }
+
+    void OnNCRButtonUp(HWND hwnd, int x, int y, UINT codeHitTest)
+    {
     }
 
     BOOL OnEraseBkgnd(HWND hwnd, HDC hdc)
@@ -211,7 +243,7 @@ public:
         {
             POINT pt;
             ::GetCursorPos(&pt);
-            MoveAll(hwnd, pt.x - m_pt.x, pt.y - m_pt.y);
+            MoveSelection(hwnd, pt.x - m_pt.x, pt.y - m_pt.y);
             m_pt = pt;
         }
 
@@ -235,7 +267,7 @@ public:
         }
 
         if (!m_bSizing)
-            ResizeAll(hwnd, cx, cy);
+            ResizeSelection(hwnd, cx, cy);
     }
 
     void OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
@@ -279,7 +311,7 @@ public:
             }
             else
             {
-                DeselectAll();
+                DeselectSelection();
             }
         }
 
@@ -325,19 +357,6 @@ public:
 class MRadDialog : public MDialogBase
 {
 public:
-    BOOL CreateDialogIndirectDx(HWND hwnd, const void *ptr)
-    {
-        m_bModal = FALSE;
-        m_hwnd = ::CreateDialogIndirectParam(
-            GetModuleHandle(NULL), (LPCDLGTEMPLATE)ptr,
-            hwnd, MDialogBase::DialogProc, (LPARAM)this);
-        if (m_hwnd)
-        {
-            SetUserData(m_hwnd, this);
-        }
-        return m_hwnd != NULL;
-    }
-
     HWND GetNextCtrl(HWND hwndCtrl) const
     {
         HWND hwndNext = GetNextWindow(hwndCtrl, GW_HWNDNEXT);
@@ -394,7 +413,6 @@ public:
         switch (uMsg)
         {
             HANDLE_MSG(hwnd, WM_INITDIALOG, OnInitDialog);
-            HANDLE_MSG(hwnd, WM_CONTEXTMENU, OnContextMenu);
             HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnLButtonDown);
             HANDLE_MSG(hwnd, WM_LBUTTONDBLCLK, OnLButtonDown);
         }
@@ -406,7 +424,7 @@ public:
         if (::GetKeyState(VK_SHIFT) < 0 || ::GetKeyState(VK_CONTROL) < 0)
             return;
 
-        MRadCtrl::DeselectAll();
+        MRadCtrl::DeselectSelection();
     }
 
     virtual LRESULT CALLBACK
@@ -436,11 +454,14 @@ public:
 
     void OnNCRButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest)
     {
+        if (fDoubleClick)
+            return;
+
+        FORWARD_WM_CONTEXTMENU(GetParent(hwnd), hwnd, x, y, SendMessage);
     }
 
     void OnNCRButtonUp(HWND hwnd, int x, int y, UINT codeHitTest)
     {
-        FORWARD_WM_CONTEXTMENU(GetParent(hwnd), hwnd, x, y, SendMessage);
     }
 
     void OnNCMouseMove(HWND hwnd, int x, int y, UINT codeHitTest)
@@ -499,11 +520,6 @@ public:
 
         DoSubclassChildren(hwnd, TRUE);
         return FALSE;
-    }
-
-    void OnContextMenu(HWND hwnd, HWND hwndContext, UINT xPos, UINT yPos)
-    {
-        FORWARD_WM_CONTEXTMENU(GetParent(hwnd), hwndContext, xPos, yPos, SendMessage);
     }
 };
 
@@ -598,8 +614,22 @@ struct MRadWindow : MWindowBase
             HANDLE_MSG(hwnd, WM_DESTROY, OnDestroy);
             HANDLE_MSG(hwnd, WM_CONTEXTMENU, OnContextMenu);
             HANDLE_MSG(hwnd, WM_KEYDOWN, OnKey);
+            HANDLE_MSG(hwnd, WM_COMMAND, OnCommand);
         }
         return DefaultProcDx(hwnd, uMsg, wParam, lParam);
+    }
+
+    void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
+    {
+        switch (id)
+        {
+        case IDM_TEST2:
+            MsgBoxDx(TEXT("IDM_TEST2"), MB_ICONINFORMATION);
+            break;
+        case IDM_TEST3:
+            MRadCtrl::DeleteSelection();
+            break;
+        }
     }
 
     void OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
@@ -630,7 +660,7 @@ struct MRadWindow : MWindowBase
                 {
                     hwndTarget = m_rad_dialog.GetPrevCtrl(hwndTarget);
                 }
-                MRadCtrl::DeselectAll();
+                MRadCtrl::DeselectSelection();
                 MRadCtrl::Select(hwndTarget);
             }
             else
@@ -643,7 +673,7 @@ struct MRadWindow : MWindowBase
                 {
                     hwndTarget = m_rad_dialog.GetNextCtrl(hwndTarget);
                 }
-                MRadCtrl::DeselectAll();
+                MRadCtrl::DeselectSelection();
                 MRadCtrl::Select(hwndTarget);
             }
             break;
@@ -658,11 +688,11 @@ struct MRadWindow : MWindowBase
                 MapWindowRect(NULL, m_rad_dialog, &rc);
                 SIZE siz = SizeFromRectDx(&rc);
                 siz.cy -= 1;
-                MRadCtrl::ResizeAll(NULL, siz.cx, siz.cy);
+                MRadCtrl::ResizeSelection(NULL, siz.cx, siz.cy);
             }
             else
             {
-                MRadCtrl::MoveAll(NULL, 0, -1);
+                MRadCtrl::MoveSelection(NULL, 0, -1);
             }
             break;
         case VK_DOWN:
@@ -676,11 +706,11 @@ struct MRadWindow : MWindowBase
                 MapWindowRect(NULL, m_rad_dialog, &rc);
                 SIZE siz = SizeFromRectDx(&rc);
                 siz.cy += 1;
-                MRadCtrl::ResizeAll(NULL, siz.cx, siz.cy);
+                MRadCtrl::ResizeSelection(NULL, siz.cx, siz.cy);
             }
             else
             {
-                MRadCtrl::MoveAll(NULL, 0, +1);
+                MRadCtrl::MoveSelection(NULL, 0, +1);
             }
             break;
         case VK_LEFT:
@@ -694,11 +724,11 @@ struct MRadWindow : MWindowBase
                 MapWindowRect(NULL, m_rad_dialog, &rc);
                 SIZE siz = SizeFromRectDx(&rc);
                 siz.cx -= 1;
-                MRadCtrl::ResizeAll(NULL, siz.cx, siz.cy);
+                MRadCtrl::ResizeSelection(NULL, siz.cx, siz.cy);
             }
             else
             {
-                MRadCtrl::MoveAll(NULL, -1, 0);
+                MRadCtrl::MoveSelection(NULL, -1, 0);
             }
             break;
         case VK_RIGHT:
@@ -712,12 +742,15 @@ struct MRadWindow : MWindowBase
                 MapWindowRect(NULL, m_rad_dialog, &rc);
                 SIZE siz = SizeFromRectDx(&rc);
                 siz.cx += 1;
-                MRadCtrl::ResizeAll(NULL, siz.cx, siz.cy);
+                MRadCtrl::ResizeSelection(NULL, siz.cx, siz.cy);
             }
             else
             {
-                MRadCtrl::MoveAll(NULL, +1, 0);
+                MRadCtrl::MoveSelection(NULL, +1, 0);
             }
+            break;
+        case VK_DELETE:
+            MRadCtrl::DeleteSelection();
             break;
         default:
             return;
