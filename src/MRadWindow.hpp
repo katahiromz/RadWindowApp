@@ -185,7 +185,6 @@ public:
             HANDLE_MSG(hwnd, WM_NCLBUTTONUP, OnNCLButtonUp);
             HANDLE_MSG(hwnd, WM_MOVE, OnMove);
             HANDLE_MSG(hwnd, WM_SIZE, OnSize);
-            HANDLE_MSG(hwnd, WM_ERASEBKGND, OnEraseBkgnd);
             HANDLE_MSG(hwnd, WM_LBUTTONDBLCLK, OnLButtonDown);
             HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnLButtonDown);
             HANDLE_MSG(hwnd, WM_LBUTTONUP, OnLButtonUp);
@@ -209,14 +208,6 @@ public:
 
     void OnNCRButtonUp(HWND hwnd, int x, int y, UINT codeHitTest)
     {
-    }
-
-    BOOL OnEraseBkgnd(HWND hwnd, HDC hdc)
-    {
-        RECT rc;
-        GetClientRect(hwnd, &rc);
-        IntersectClipRect(hdc, rc.left, rc.top, rc.right, rc.bottom);
-        return DefaultProcDx(hwnd, WM_ERASEBKGND, (WPARAM)hdc, 0);
     }
 
     void OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
@@ -519,6 +510,7 @@ public:
         SubclassDx(hwnd);
 
         DoSubclassChildren(hwnd, TRUE);
+
         return FALSE;
     }
 };
